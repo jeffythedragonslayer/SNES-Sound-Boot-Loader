@@ -1,0 +1,68 @@
+APU_port    0   equ 02140h
+APU_port    1   equ 02141h
+APU_port    2   equ 02142h
+APU_port    3   equ 02143h
+address         equ 00000h
+;                               			Input Sound ROM Start address
+;-------------------------------------------------------(3 byte) in 0 page and call
+;               code            			"Boot_APU" from main routine.
+Boot_APU        php
+                rep	#00110000b
+		idx16			; sony news
+		mem16			; sony news
+		on16i			; SNES Emulator
+		on16a			; SNES Emulator
+		ldy	#0
+		lda	#0bbaah
+boot_initial	cmp	!APU_PORT0	;m16
+		bne	boot_initial
+		sep	#00100000b
+		mem8
+		off16a
+		lda	#0cch
+		bra	boot_entry1
+boot_repeat	lda	[address],y
+		iny
+		xba
+		lda	#0
+		bra	boot_entry2
+boot_loop	xba
+		lda	[address],y
+		iny
+		xba
+boot_wait1	cmp	!APU_PORT0
+		bne	boot_wait1
+		inc	a
+boot_entry2	rep	#00100000b
+		sta	!APU_PORT0	;m16
+		sep	#00100000b
+		dex
+		bne	boot_loop
+boot_wait2	cmp	!APU_PORT0
+		bne	boot_wait2
+boot_zero	adc	#3
+		beq	boot_zero
+boot_entry1	pha			;>
+		rep	#00100000b	
+		lda	[address],y	;m16
+		iny
+		iny
+		tax
+		lda	[address],y	;m16
+		iny
+		iny
+		sta	!APU_PORT2	;m16
+		sep	#00100000b
+		cpx	#1
+		lda	#0
+		rol	a
+		sta	!APU_PORT1
+		adc	#07fh
+		pla			;>
+		sta	!APU_PORT0
+boot_wait3	cmp	!APU_PORT0
+		bne	boot_wait3
+		bvs	boot_repeat
+		plp
+		rts
+		end
